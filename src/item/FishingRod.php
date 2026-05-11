@@ -23,6 +23,10 @@ declare(strict_types=1);
 
 namespace pocketmine\item;
 
+use pocketmine\entity\Entity;
+use pocketmine\math\Vector3;
+use pocketmine\player\Player;
+
 class FishingRod extends Durable{
 
 	public function getMaxStackSize() : int{
@@ -33,5 +37,22 @@ class FishingRod extends Durable{
 		return 384;
 	}
 
-	//TODO
+	public function onClickAir(Player $player, Vector3 $directionVector, array &$returnedItems) : ItemUseResult{
+		if($player->hasFiniteResources()){
+			$this->applyDamage(1);
+		}
+
+		return ItemUseResult::SUCCESS;
+	}
+
+	public function onInteractEntity(Player $player, Entity $entity, Vector3 $clickVector) : bool{
+		if($entity === $player){
+			return false;
+		}
+
+		$pullMotion = $player->getPosition()->subtractVector($entity->getPosition())->normalize()->multiply(0.4);
+		$entity->setMotion($entity->getMotion()->add($pullMotion->x, $pullMotion->y + 0.2, $pullMotion->z));
+
+		return !$player->hasFiniteResources() || $this->applyDamage(1);
+	}
 }

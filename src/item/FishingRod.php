@@ -23,6 +23,12 @@ declare(strict_types=1);
 
 namespace pocketmine\item;
 
+use pocketmine\entity\Entity;
+use pocketmine\math\Vector3;
+use pocketmine\player\Player;
+use pocketmine\world\sound\ThrowSound;
+use function sqrt;
+
 class FishingRod extends Durable{
 
 	public function getMaxStackSize() : int{
@@ -33,5 +39,32 @@ class FishingRod extends Durable{
 		return 384;
 	}
 
-	//TODO
+	public function onClickAir(Player $player, Vector3 $directionVector, array &$returnedItems) : ItemUseResult{
+		$player->getWorld()->addSound($player->getLocation(), new ThrowSound());
+
+		if($player->hasFiniteResources()){
+			$this->applyDamage(1);
+		}
+
+		return ItemUseResult::SUCCESS;
+	}
+
+	public function onInteractEntity(Player $player, Entity $entity, Vector3 $clickVector) : bool{
+		if($entity === $player){
+			return false;
+		}
+
+		$delta = $player->getPosition()->subtractVector($entity->getPosition());
+		$distanceSquared = $delta->lengthSquared();
+		if($distanceSquared > 0.0001){
+			$distance = sqrt($distanceSquared);
+			$entity->setMotion($entity->getMotion()->add(
+				$delta->x * 0.1,
+				$delta->y * 0.1 + sqrt($distance) * 0.08,
+				$delta->z * 0.1
+			));
+		}
+
+		return !$player->hasFiniteResources() || $this->applyDamage(1);
+	}
 }
